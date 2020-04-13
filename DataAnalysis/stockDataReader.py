@@ -31,7 +31,7 @@ with open(csvFilePath) as csv_file:
 
             date = dt.datetime.strptime(row[0], format)
 
-            new_row = {"company":currentCompany, "date":str(date), "openprice":row[3].replace("$",""), "closeprice":row[1].replace("$","")}
+            new_row = {"company":currentCompany, "date":str(date), "openprice":row[3].replace("$","").replace(",","").strip(), "closeprice":row[1].replace("$","").replace(",","").strip()}
             df = df.append(new_row, ignore_index=True)
 
 df.to_csv(outputPath, index=False)

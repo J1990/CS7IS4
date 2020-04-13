@@ -20,9 +20,22 @@ def nearest_ind(items, pivot):
 basePath = path.dirname(__file__)
 jsonFilesPath = path.join(basePath, 'releases2')
 stockPricesPath = path.join(basePath, 'stockPrices.csv')
-graphForCompany = "AAL"
+#graphForCompany = "PEP"
+
+oneCompanyIncreaseCount = 0
+oneCompanyDecreaseCount = 0
+allCompanyIncreaseCount = 0
+allCompanyDecreaseCount = 0
+
+positivePressContent = ''
+negativePressContent = ''
+
+positiveFile = open("D:\\OneDrive - TCDUD.onmicrosoft.com\\MSc\\Sem 2\\TextAnalytics\\positive.txt","a", encoding="utf-8")#append mode 
+negativeFile = open("D:\\OneDrive - TCDUD.onmicrosoft.com\\MSc\\Sem 2\\TextAnalytics\\negative.txt","a", encoding="utf-8")#append mode
+ 
 
 pressPublishDates = dict()
+pressPublishContent = dict()
 
 for file in listdir(jsonFilesPath):
 
@@ -36,59 +49,94 @@ for file in listdir(jsonFilesPath):
 
             for js in data:
                 dateStr = js['date']
+                content = js['content'].strip().replace(' ', ',').replace('#', ',')
 
                 if(companyCode not in pressPublishDates):
                     pressPublishDates[companyCode] = dateStr
+                    pressPublishContent[companyCode] = content
                 else:
                     pressPublishDates[companyCode] = pressPublishDates[companyCode]+ "#" + dateStr
+                    pressPublishContent[companyCode] = pressPublishContent[companyCode]+ "#" + content
 
-stockPrices = pd.read_csv(stockPricesPath)
+for comp in pressPublishDates:
 
+    if(comp!="PEP"):
+        continue
 
-oneCompanyPricesData = pd.DataFrame(stockPrices[stockPrices["company"]==graphForCompany])
+    stockPrices = pd.read_csv(stockPricesPath)
 
-oneCompanyPricesData.date = pd.to_datetime(oneCompanyPricesData['date'], format='%Y-%m-%d %H:%M:%S')
-oneCompanyPricesData.openprice = pd.to_numeric(oneCompanyPricesData['openprice'])
-oneCompanyPricesData.closeprice = pd.to_numeric(oneCompanyPricesData['closeprice'])
-oneCompanyPricesData = oneCompanyPricesData.sort_values('date', ascending=True)
+    oneCompanyPricesData = pd.DataFrame(stockPrices[stockPrices["company"]==comp])
 
-oneCompanyPressDateTexts = pressPublishDates[graphForCompany].split("#")
-pressDates = pd.DataFrame(columns = ["date", "value"])
+    oneCompanyPricesData.date = pd.to_datetime(oneCompanyPricesData['date'], format='%Y-%m-%d %H:%M:%S')
+    oneCompanyPricesData.openprice = pd.to_numeric(oneCompanyPricesData['openprice'])
+    oneCompanyPricesData.closeprice = pd.to_numeric(oneCompanyPricesData['closeprice'])
+    oneCompanyPricesData = oneCompanyPricesData.sort_values('date', ascending=True)
 
-for dateStr in oneCompanyPressDateTexts:
+    oneCompanyPressDateTexts = pressPublishDates[comp].split("#")
+    oneCompanyPressContent = pressPublishContent[comp].split("#")
+    pressDates = pd.DataFrame(columns = ["date", "value"])
 
-    date = dt.datetime.today()
-    eastern = pytz.timezone('US/Eastern')
+    index = 0
+    
+    for dateStr in oneCompanyPressDateTexts:
 
-    if(dateStr[-3:]=="EST"):        
-        date = dt.datetime.strptime(dateStr, "%b %d, %Y %H:%M%p EST")
-        date = date.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif(dateStr[-3:]=="EDT"):
-        date = dt.datetime.strptime(dateStr, "%b %d, %Y %H:%M%p EDT")
-        date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        date = dt.datetime.today()
+        eastern = pytz.timezone('US/Eastern')
 
-    nearestInd = nearest_ind(oneCompanyPricesData.date, date)
-    val = oneCompanyPricesData.iloc[nearestInd]['openprice']
-    val = max({val, oneCompanyPricesData.iloc[nearestInd]['closeprice']})
+        if(dateStr[-3:]=="EST"):        
+            date = dt.datetime.strptime(dateStr, "%b %d, %Y %H:%M%p EST")
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif(dateStr[-3:]=="EDT"):
+            date = dt.datetime.strptime(dateStr, "%b %d, %Y %H:%M%p EDT")
+            date = date.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    new_row = {"date":date, "value":val}
-    pressDates = pressDates.append(new_row, ignore_index=True)
+        nearestInd = nearest_ind(oneCompanyPricesData.date, date)
+        openVal = oneCompanyPricesData.iloc[nearestInd]['openprice']
+        closeVal = oneCompanyPricesData.iloc[nearestInd]['closeprice']
 
-pressDates.sort_values('date', ascending=True)
+        if(closeVal>openVal):
+            allCompanyIncreaseCount+=1
+            positiveFile.write(oneCompanyPressContent[index])
+        else:
+            allCompanyDecreaseCount+=1 
+            negativeFile.write(oneCompanyPressContent[index])
 
-maxPrice = max({oneCompanyPricesData['openprice'].astype(float).max(),oneCompanyPricesData['closeprice'].astype(float).max()})
+        val = max({openVal, closeVal})
 
-plt.figure(figsize=(35.0, 6.0))
-plt.yticks(np.arange(0.0, maxPrice, step=(maxPrice/10)))
-plt.plot('date','openprice', data=oneCompanyPricesData, marker='o', markersize=3, label="Open Price $")
-plt.plot('date','closeprice', data=oneCompanyPricesData, marker='o', markersize=3, label="Close Price $")
-plt.vlines(pressDates['date'], 0, pressDates['value'], linestyle="dotted")
-plt.scatter(pressDates['date'], pressDates['value'], s=50, c='r', label="Press Release Date", zorder = 2)
-plt.ylim(ymin=0)
-plt.legend(loc="upper right")
-plt.title("Price Chart for " + graphForCompany)
-plt.xlabel("Date")
-plt.ylabel("Stock Price $")
+        new_row = {"date":date, "value":val}
+        pressDates = pressDates.append(new_row, ignore_index=True)
+
+        index+=1
+
+    pressDates.sort_values('date', ascending=True)
+
+    maxPrice = max({oneCompanyPricesData['openprice'].astype(float).max(),oneCompanyPricesData['closeprice'].astype(float).max()})
+
+    
+    plt.figure(figsize=(35.0, 6.0))
+    plt.yticks(np.arange(0.0, maxPrice, step=(maxPrice/10)))
+    plt.plot('date','openprice', data=oneCompanyPricesData, marker='o', markersize=3, label="Open Price $")
+    plt.plot('date','closeprice', data=oneCompanyPricesData, marker='o', markersize=3, label="Close Price $")
+    plt.vlines(pressDates['date'], 0, pressDates['value'], linestyle="dotted")
+    plt.scatter(pressDates['date'], pressDates['value'], s=50, c='r', label="Press Release Date", zorder = 2)
+    plt.ylim(ymin=0)
+    plt.legend(loc="upper right")
+    plt.title("Price Chart for " + comp)
+    plt.xlabel("Date")
+    plt.ylabel("Stock Price $")
+    plt.show()
+    
+print(len(pressPublishDates))
+labels = 'Rise: ' + str(allCompanyIncreaseCount), 'Dip: ' + str(allCompanyDecreaseCount),
+sizes = [allCompanyIncreaseCount, allCompanyDecreaseCount]
+fig1, ax1 = plt.subplots()
+ax1.pie(sizes, labels=labels, autopct='%1.1f%%',
+        shadow=True, startangle=90)
+ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
 plt.show()
+
+positiveFile.close()
+negativeFile.close()
 
 #plt.savefig(path.join(basePath, graphForCompany+".jpg"), quality=70, dpi=500)
