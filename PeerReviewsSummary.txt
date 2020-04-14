@@ -1,0 +1,33 @@
+Title
+	Impact of Semantics used in Press Releases on Stock Prices using sentiment analysis
+
+Introduction & Literature:
+	Explicitly mention the research question in separate paragraph
+	Compare different perspectives about the same research question
+	Which results will confirm/falsify the hypothesis?
+	what is the gap in existing research?
+	Include older past research and in the order of publishing date
+
+Methodology:
+	Mention features other than press releases that can affect stock prices
+	Find More text features in the data
+	Data collection and processing needs to be more clear
+	Detailed explanation of research methods
+	using maths definitions/equations
+	inconsistency - Title mentions semantics, Methods mention sentiment
+	
+Evaluation:
+	What in case of Null Hypothesis - No effect of press releases
+	Evaluation methods need to comprehensively discuss the outcomes of the research
+	Long term impact of press releases?
+	
+References:
+	cite references of data sources
+
+Other:
+	Equal contribution from all members
+	Provide Abstract, Keywords, Conclusions, Results, Figures, Tables
+
+
+
+
